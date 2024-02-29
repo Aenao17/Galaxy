@@ -1,0 +1,26 @@
+#:import menu menu
+MainWidget:
+
+<MainWidget>:
+    canvas.before:
+        Rectangle:
+            size: self.size
+            source: "Project.png"
+    menu_widget: menu_widget
+    perspective_point_x: self.width/2
+    perspective_point_y: self.height * 0.75
+    MenuWidget:
+        id: menu_widget
+    Label:
+        text: root.score_txt
+        font_size: dp(20)
+        font_name: 'Roboto-Bold.ttf'
+        size_hint: .18, .18
+        pos_hint: {"x":0, "top":1}
+
+    Label:
+        text: root.highscore_txt
+        font_size: dp(20)
+        font_name: 'Roboto-Bold.ttf'
+        size_hint: .18, .18
+        pos_hint: {"x":0, "top":.9}

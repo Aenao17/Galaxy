@@ -2,12 +2,14 @@ import random
 import psycopg2
 
 from kivy.config import Config
+from kivy.uix.button import Button
 
 Config.set('graphics', 'width', '900')
 Config.set('graphics', 'height', '400')
 
 from kivy.core.audio import SoundLoader
 from kivy.lang import Builder
+from kivy.uix.textinput import TextInput
 from kivy.metrics import dp
 from kivy.uix.relativelayout import RelativeLayout
 from kivymd.uix.datatables import MDDataTable
@@ -36,6 +38,7 @@ class MainWidget(RelativeLayout):
     leaderbord_data = []
 
     highcore = 0
+    name=""
 
     V_NB_LINES = 8
     V_LINES_SPACING = .3
@@ -71,6 +74,9 @@ class MainWidget(RelativeLayout):
     menu_music = None
     game_over_sound = None
 
+    text_input=None
+    button = None
+
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
         self.init_audio()
@@ -87,9 +93,17 @@ class MainWidget(RelativeLayout):
         Clock.schedule_interval(self.update, 1 / 60)
         self.menu_music.play()
 
+    def init_name(self):
+        self.text_input = TextInput(text="Your nickname", size_hint=(0.2, 0.1), pos_hint={'x': 0.15, 'top': 0.6})
+        self.button = Button(text="Save", size_hint=(0.1, 0.1), pos_hint={'x': 0.2, 'top': 0.5})
+        self.text_input.opacity = 0
+        self.button.opacity = 0
+        MainWidget.add_widget(self, self.text_input)
+        MainWidget.add_widget(self, self.button)
+
     def init_table(self):
         self.table = MDDataTable(
-            pos_hint = {'center_x':0.5, 'center_y':0.5},
+            pos_hint = {'right':0.1, 'top':0.5},
             size_hint = (0.3,0.4),
             use_pagination = True,
             rows_num = 1,
@@ -317,6 +331,8 @@ class MainWidget(RelativeLayout):
         time_factor = dt * 60
         if not self.state_game_over and self.state_game_has_started:
             self.table.opacity=0
+            self.text_input.opacity=0
+            self.button.opacity=0
             self.menu_music.stop()
             if self.current_y_loop % 50 == 0:
                 self.dificulty += 1/200
@@ -334,6 +350,8 @@ class MainWidget(RelativeLayout):
         if not self.check_ship_collision() and not self.state_game_over:
             self.state_game_over = True
             self.check_highscore()
+            self.check_leaderboard()
+            self.init_table()
             self.highscore_txt = "HIGHSCORE: " + str(self.get_highscore())
             self.menu_title = "G  A  M  E     O  V  E  R"
             self.menu_button_title = "RESTART"
@@ -341,7 +359,10 @@ class MainWidget(RelativeLayout):
             self.game_sound.stop()
             self.game_over_sound.play()
             self.table.opacity = 1
-            self.table.pos_hint = {'center_x':0.5, 'center_y':0.5}
+            self.table.pos_hint = {'right':0.9, 'center_y':0.5}
+
+            self.text_input.opacity=1
+            self.button.opacity=1
 
     def on_menu_button_pressed(self):
         self.game_over_sound.stop()
@@ -360,7 +381,39 @@ class MainWidget(RelativeLayout):
             file.write(str(score))
             file.close()
 
+    def check_leaderboard(self):
+        update = None
+        self.get_data_from_db()
+        if len(self.leaderbord_data) < 10:
+            try:
+                connection = psycopg2.connect(user="postgres", password="17072003", host="127.0.0.1", port="5432",
+                                          database="galaxy")
+                cursor = connection.cursor()
+                insert = "insert into leaderboard (nume, score) values('Marius',"+str(self.current_y_loop)+")"
+                cursor.execute(insert)
+                connection.commit()
+            finally:
+                if connection:
+                    cursor.close()
+                    connection.close()
+        else:
+            for i in self.leaderbord_data:
+                if self.current_y_loop > i[1]:
+                    update = i
+            if update != None:
+                try:
+                    connection = psycopg2.connect(user="postgres", password="17072003", host="127.0.0.1", port="5432",database="galaxy")
+                    cursor = connection.cursor()
+                    updateCommand = "update leaderboard set nume='Marius'"+",score="+str(self.current_y_loop)+" where nume='"+str(update[0])+"' and score=" + str(update[1])
+                    cursor.execute(updateCommand)
+                    connection.commit()
+                finally:
+                    if connection:
+                        cursor.close()
+                        connection.close()
+
     def get_data_from_db(self):
+        self.leaderbord_data.clear()
         try:
             connection = psycopg2.connect(user="postgres", password="17072003", host="127.0.0.1", port="5432", database="galaxy")
             cursor = connection.cursor()
@@ -378,6 +431,7 @@ class GalaxyApp(MDApp):
     def on_start(self):
         self.root.get_data_from_db()
         self.root.init_table()
+        self.root.init_name()
         self.root.table.opacity = 0
         self.root.table.pos_hint = {'right':2}
 

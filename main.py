@@ -123,7 +123,7 @@ class MainWidget(RelativeLayout):
         try:
             f = open("highscore.txt",'r')
         except:
-            f = open("highscore.txt", 'w')
+            f = open("highscore.txt",'w')
         finally:
             f.close()
 

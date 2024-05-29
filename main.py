@@ -94,8 +94,9 @@ class MainWidget(RelativeLayout):
         self.menu_music.play()
 
     def init_name(self):
-        self.text_input = TextInput(text="Your nickname", size_hint=(0.2, 0.1), pos_hint={'x': 0.15, 'top': 0.6})
-        self.button = Button(text="Save", size_hint=(0.1, 0.1), pos_hint={'x': 0.2, 'top': 0.5})
+        self.text_input = TextInput( size_hint=(0.2, 0.1), pos_hint={'x': 0.15, 'top': 0.6})
+        self.button = Button(text="Save", size_hint=(0.1, 0.1), pos_hint={'x': 0.2, 'top': 0.45})
+        self.button.bind(on_press=self.on_button_pressed1)
         self.text_input.opacity = 0
         self.button.opacity = 0
         MainWidget.add_widget(self, self.text_input)
@@ -331,6 +332,9 @@ class MainWidget(RelativeLayout):
         time_factor = dt * 60
         if not self.state_game_over and self.state_game_has_started:
             self.table.opacity=0
+            self.table.disabled = True
+            self.text_input.disabled = True
+            self.button.disabled = True
             self.text_input.opacity=0
             self.button.opacity=0
             self.menu_music.stop()
@@ -350,7 +354,6 @@ class MainWidget(RelativeLayout):
         if not self.check_ship_collision() and not self.state_game_over:
             self.state_game_over = True
             self.check_highscore()
-            self.check_leaderboard()
             self.init_table()
             self.highscore_txt = "HIGHSCORE: " + str(self.get_highscore())
             self.menu_title = "G  A  M  E     O  V  E  R"
@@ -359,10 +362,33 @@ class MainWidget(RelativeLayout):
             self.game_sound.stop()
             self.game_over_sound.play()
             self.table.opacity = 1
-            self.table.pos_hint = {'right':0.9, 'center_y':0.5}
 
-            self.text_input.opacity=1
-            self.button.opacity=1
+
+            if self.record():
+                self.text_input.disabled = False
+                self.button.disabled = False
+                self.button.text = "Save"
+                self.text_input.opacity = 1
+                self.button.opacity = 1
+                self.table.pos_hint = {'right': 0.9, 'center_y': 0.5}
+                self.table.row_data=self.leaderbord_data
+            else:
+                self.button.text = "Save"
+                self.table.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
+                self.text_input.disabled = True
+                self.button.disabled = True
+                self.table.disabled = True
+
+
+
+    def on_button_pressed1(self,event):
+        self.name = self.text_input.text
+        if self.name == "":
+            self.name = "Player"
+        self.check_leaderboard()
+        self.text_input.text = ""
+        self.text_input.disabled = True
+        self.button.disabled = True
 
     def on_menu_button_pressed(self):
         self.game_over_sound.stop()
@@ -381,55 +407,18 @@ class MainWidget(RelativeLayout):
             file.write(str(score))
             file.close()
 
-    def check_leaderboard(self):
-        update = None
-        self.get_data_from_db()
+    def record(self):
         if len(self.leaderbord_data) < 10:
-            try:
-                connection = psycopg2.connect(user="postgres", password="17072003", host="127.0.0.1", port="5432",
-                                          database="galaxy")
-                cursor = connection.cursor()
-                insert = "insert into leaderboard (nume, score) values('Marius',"+str(self.current_y_loop)+")"
-                cursor.execute(insert)
-                connection.commit()
-            finally:
-                if connection:
-                    cursor.close()
-                    connection.close()
-        else:
-            for i in self.leaderbord_data:
-                if self.current_y_loop > i[1]:
-                    update = i
-            if update != None:
-                try:
-                    connection = psycopg2.connect(user="postgres", password="17072003", host="127.0.0.1", port="5432",database="galaxy")
-                    cursor = connection.cursor()
-                    updateCommand = "update leaderboard set nume='Marius'"+",score="+str(self.current_y_loop)+" where nume='"+str(update[0])+"' and score=" + str(update[1])
-                    cursor.execute(updateCommand)
-                    connection.commit()
-                finally:
-                    if connection:
-                        cursor.close()
-                        connection.close()
+            return True
+        for i in self.leaderbord_data:
+            if self.current_y_loop > i[1]:
+                return True
+        return False
 
-    def get_data_from_db(self):
-        self.leaderbord_data.clear()
-        try:
-            connection = psycopg2.connect(user="postgres", password="17072003", host="127.0.0.1", port="5432", database="galaxy")
-            cursor = connection.cursor()
-            select = "select * from leaderboard order by score DESC "
-            cursor.execute(select)
-            mobile_records = cursor.fetchall()
-            for row in mobile_records:
-                self.leaderbord_data.append((row[1],row[2]))
-        finally:
-            if connection:
-                cursor.close()
-                connection.close()
+
 
 class GalaxyApp(MDApp):
     def on_start(self):
-        self.root.get_data_from_db()
         self.root.init_table()
         self.root.init_name()
         self.root.table.opacity = 0

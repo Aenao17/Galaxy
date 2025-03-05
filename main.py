@@ -1,5 +1,6 @@
 import random
 import psycopg2
+import json
 
 from kivy.config import Config
 from kivy.uix.button import Button
@@ -79,6 +80,7 @@ class MainWidget(RelativeLayout):
 
     def __init__(self, **kwargs):
         super(MainWidget, self).__init__(**kwargs)
+        self.load_leaderboard()
         self.init_audio()
         self.init_vertical_lines()
         self.init_horizontal_lines()
@@ -103,21 +105,35 @@ class MainWidget(RelativeLayout):
         MainWidget.add_widget(self, self.button)
 
     def init_table(self):
+        # Create the leaderboard table
         self.table = MDDataTable(
-            pos_hint = {'right':0.1, 'top':0.5},
-            size_hint = (0.3,0.4),
-            use_pagination = True,
-            rows_num = 1,
-            column_data = self.column_names,
-            row_data = self.leaderbord_data,
-            background_color_cell = (.3, .3, 1, .85),
-            background_color_header = (.3, .3, 1, .85),
-            background_color = (.3, .3, 1, .85),
-            background_color_selected_cell = (.3, .3, 1, .85)
-        )
-        self.table.opacity = 1
-        MainWidget.add_widget(self,self.table)
+            size_hint=(0.5, 0.3),  # Adjust size
+            pos_hint={'center_x': 0.5, 'center_y': 0.5},  # Center the table
+            use_pagination=False,  # No pagination row
+            rows_num=10,  # Max 10 rows visible
+            check=False,  # ✅ Remove checkboxes
+            column_data=self.column_names,
+            row_data=self.leaderbord_data,
 
+            # 🎨 Styling for blue rows
+            background_color_header=(0, 0, 0.8, 1),  # ✅ Dark Blue Header
+            background_color_cell=(0.3, 0.3, 1, 1),  # ✅ Blue background for rows
+            background_color_selected_cell=(0.5, 0.5, 1, 1),  # Light blue for selected row
+            elevation=0,  # Removes unwanted shadows
+        )
+
+        # ✅ Center header text
+        centered_column_data = []
+        for column in self.table.column_data:
+            centered_column_data.append((column[0], column[1], lambda x: {'halign': 'center', 'valign': 'middle'}))
+
+        self.table.column_data = centered_column_data
+
+        # ✅ Refresh the table by re-assigning `row_data`
+        self.table.row_data = self.leaderbord_data
+
+        # Add the table directly to the widget
+        self.add_widget(self.table)
 
     def get_highscore(self):
         try:
@@ -379,24 +395,48 @@ class MainWidget(RelativeLayout):
                 self.button.disabled = True
                 self.table.disabled = True
 
-
-
-    def on_button_pressed1(self,event):
-        self.name = self.text_input.text
+    def on_button_pressed1(self, event):
+        self.name = self.text_input.text.strip()
         if self.name == "":
             self.name = "Player"
+
         self.check_leaderboard()
         self.text_input.text = ""
+
+        # Disable and hide input fields
         self.text_input.disabled = True
         self.button.disabled = True
+        self.text_input.opacity = 0
+        self.button.opacity = 0
+
+        # ✅ Do NOT restart the game here!
+        # ✅ The game stays in "Game Over" state until the user presses the restart button
+
+        # Ensure leaderboard updates visually
+        self.table.opacity = 1
+        self.table.row_data = self.leaderbord_data
 
     def on_menu_button_pressed(self):
         self.game_over_sound.stop()
+
+        # ✅ Fully reset the game state
         self.reset_game()
+        self.state_game_over = False
         self.state_game_has_started = True
         self.menu_widget.opacity = 0
         self.table.opacity = 0
         self.game_sound.play()
+
+        # ✅ Ensure keyboard input is restored after restarting
+        if self.is_desktop():
+            if self._keyboard:
+                self._keyboard.unbind(on_key_down=self.on_keyboard_down)
+                self._keyboard.unbind(on_key_up=self.on_keyboard_up)
+
+            self._keyboard = Window.request_keyboard(self.keyboard_closed, self)
+            if self._keyboard:
+                self._keyboard.bind(on_key_down=self.on_keyboard_down)
+                self._keyboard.bind(on_key_up=self.on_keyboard_up)
 
     def check_highscore(self):
 
@@ -415,6 +455,34 @@ class MainWidget(RelativeLayout):
                 return True
         return False
 
+    def check_leaderboard(self):
+        """Update leaderboard, save to file, and keep top 10 scores."""
+        self.leaderbord_data.append((self.name, self.current_y_loop))
+
+        # Sort leaderboard in descending order
+        self.leaderbord_data.sort(key=lambda x: x[1], reverse=True)
+
+        # Keep only the top 10 scores
+        self.leaderbord_data = self.leaderbord_data[:10]
+
+        # Save the updated leaderboard to file
+        self.save_leaderboard()
+
+        # Refresh the table with new leaderboard
+        self.table.row_data = self.leaderbord_data
+
+    def load_leaderboard(self):
+        """Load leaderboard data from a file."""
+        try:
+            with open("leaderboard.txt", "r") as file:
+                self.leaderbord_data = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.leaderbord_data = []  # Start with an empty leaderboard
+
+    def save_leaderboard(self):
+        """Save leaderboard data to a file."""
+        with open("leaderboard.txt", "w") as file:
+            json.dump(self.leaderbord_data, file)
 
 
 class GalaxyApp(MDApp):
@@ -423,6 +491,5 @@ class GalaxyApp(MDApp):
         self.root.init_name()
         self.root.table.opacity = 0
         self.root.table.pos_hint = {'right':2}
-
 
 GalaxyApp().run()

@@ -1,6 +1,17 @@
-# Galaxy-v2.0
+# 🚀 Galaxy-v2.0  
 
-In this version of the application, I've integrated a database connection to introduce the leaderboard functionality (I had to disable this feature for an event so it is not available at this moment). Additionally, I've added a game difficulty feature, with the speed progressively increasing throughout the game and high score.
+A **fast-paced 3D space runner game** built with **Kivy** and **Python**. Avoid obstacles, race through space, and achieve high scores! Featuring a **dynamic leaderboard**, customizable settings, and immersive music.
+
+## 🎮 Features  
+✅ **Smooth 3D Graphics** using perspective transformations  
+✅ **Leaderboard System** - Saves top scores in a file  
+✅ **Intuitive Controls** - Move left/right to dodge obstacles  
+✅ **Dynamic Difficulty** - Speed increases as you progress  
+✅ **Custom Music & Sound Effects**  
+
+This game was developed by following the tutorial below:
+
+https://youtu.be/l8Imtec4ReQ?si=0YBPl3jTfdnctJ6S
 
 Here`s a short gameplay video:
 

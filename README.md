@@ -9,6 +9,13 @@ A **fast-paced 3D space runner game** built with **Kivy** and **Python**. Avoid 
 ✅ **Dynamic Difficulty** - Speed increases as you progress  
 ✅ **Custom Music & Sound Effects**  
 
+## ⭐ Controls
+  Action	       Key
+Move Left	       Left Arrow (←)
+Move Right	     Right Arrow (→)
+Save Name	       Enter
+Exit Game	       Esc
+
 This game was developed by following the tutorial below:
 
 https://youtu.be/l8Imtec4ReQ?si=0YBPl3jTfdnctJ6S

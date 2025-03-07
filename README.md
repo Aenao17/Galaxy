@@ -1,4 +1,4 @@
-# 🚀 Galaxy-v2.0  
+# 🚀 Galaxy
 
 A **fast-paced 3D space runner game** built with **Kivy** and **Python**. Avoid obstacles, race through space, and achieve high scores! Featuring a **dynamic leaderboard**, customizable settings, and immersive music.
 
